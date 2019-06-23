@@ -1,0 +1,10 @@
+#!/bin/sh
+cd /home/pi/ac
+ac-init
+
+while :
+do
+	ac-monitor
+	echo at `date "+%Y/%m/%d %H:%M:%S"` upload done
+done
+

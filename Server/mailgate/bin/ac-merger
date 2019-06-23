@@ -1,0 +1,26 @@
+#!/bin/sh
+
+ldate="`date +%Y-%m-%d`"
+ltime="`date +%H:%M:%S`"
+datefname="`echo $ldate | sed -e "s/-//g"`"
+datahome="/var/www/cgi-bin/data"
+camera="$1"
+rdate="`grep '^date=' /tmp/$camera | cut -d= -f2 | sed -e 's/\//-/g'`"
+rtime="`grep '^time=' /tmp/$camera | cut -d= -f2`"
+tp0="`grep '^tp0=' /tmp/$camera | cut -d= -f2`"
+tp4="`grep '^tp4=' /tmp/$camera | cut -d= -f2`"
+usb="`grep '^usb=' /tmp/$camera | cut -d= -f2`"
+devid="`grep '^devid=' /tmp/$camera | cut -d= -f2`"
+ipaddr="`grep ' inet ' /tmp/$camera|head -1 |sed 's/^[ \t]*//'|cut -d\  -f2|cut -d/ -f1`" 
+
+if [ ! -d $datahome/$camera ]; then
+	mkdir $datahome/$camera
+fi
+
+echo "$ldate,$ltime,$devid,$ipaddr,$usb,$tp0,$tp4,$rdate,$rtime" >> $datahome/$camera/$datefname.csv
+if [ `echo "$usb > 50.15" | bc` == 1 -o `echo "$usb < 49.85" | bc` == 1 ]; then
+	echo "$usb $tp0 $tp4" | mail -s "AC Frequence Turbulance" yamamoto@ist.hokudai.ac.jp
+fi
+
+echo "OK"
+

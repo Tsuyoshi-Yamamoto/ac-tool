@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+# usage % hepco-monitor.sh
+#
+cd $HOME
+rhost=www.casa-amigo.jp
+username=mailgate
+pass=2amigo2
+suffix=`ifconfig wlan0 | grep "Link encap" | cut -d: -f3-6 | sed -e "s/://g"`
+device=ac-$suffix
+
+#echo $PATH
+tmppath="/tmp/$device"
+ac-sample > $tmppath
+ip addr show eth0 >> $tmppath
+ip addr show wlan0 >> $tmppath
+devid=`grep 'link/ether' $tmppath | head -1 | sed 's/^[ \t]*//' | cut -d\  -f2`
+echo "devid=$devid" >> $tmppath
+df -h | grep "/dev/root" >> $tmppath
+uptime >> $tmppath
+echo "date=`date "+%Y/%m/%d"`" >> $tmppath
+echo "time=`date "+%H:%M:%S"`" >> $tmppath
+
+sshpass -p $pass scp -o StrictHostKeyChecking=no $tmppath $username@$rhost:$tmppath
+
+status=`sshpass -p $pass ssh $rhost -o StrictHostKeyChecking=no -l $username bin/ac-merger $device`
+
+if [ "$status" = "OK" ]; then
+	rm -f $tmppath
+	echo $device uploaded and processed.
+else
+	echo "ac-merger retuns error: " $status
+	rm -f $tmppath
+fi
+
+

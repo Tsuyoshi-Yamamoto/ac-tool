@@ -1,0 +1,85 @@
+#!/bin/sh
+hz_max=0
+hz_min=100000
+hz_sum=0
+
+read_hz(){
+	gpio -g write 17 0
+	while [ `gpio -g read 18` -eq 0 ] 
+	do
+		:
+	done
+
+	bit0=`gpio -g read 5`
+	bit1=`gpio -g read 6`
+	bit2=`gpio -g read 13`
+	bit3=`gpio -g read 19`
+	bit4=`gpio -g read 26`
+	bit5=`gpio -g read 12`
+	bit6=`gpio -g read 16`
+	bit7=`gpio -g read 20`
+	bit8=`gpio -g read 21`
+	gpio -g write 17 1
+	hzdata=`expr $bit0 + $bit1 \* 2 + $bit2 \* 4 + $bit3 \* 8 + $bit4 \* 16 + $bit5 \* 32 + $bit6 \* 64 + $bit7 \* 128 + $bit8 \* 256`
+
+	if [ $hzdata -gt 255 ]; then
+		echo `expr 19968 - 512 + $hzdata`
+	else
+		echo `expr 19968 + $hzdata`
+	fi
+}
+
+npulse2freq(){
+	hz=`expr 1000000000 / $1`
+	length=`echo $hz | wc -c`
+	case $length in
+		2)	echo "0.00$hz" ;;
+		3)	echo "0.0$hz" ;;
+		4)	echo "0.$hz" ;;
+		5)	ipart=`echo $hz | cut -b 1-1`
+			fpart=`echo $hz | cut -b 2-4`
+			echo $ipart.$fpart ;;
+
+		6)	ipart=`echo $hz | cut -b 1-2`
+			fpart=`echo $hz | cut -b 3-5` 
+			echo $ipart.$fpart ;;
+		7)	ipart=`echo $hz | cut -b 1-3`
+			fpart=`echo $hz | cut -b 4-6`
+			echo $ipart.$fpart ;;
+		8)	ipart=`echo $hz | cut -b 1-4`
+			fpart=`echo $hz | cut -b 5-7`
+			echo $ipart.$fpart ;;
+	esac
+}
+
+do_average() {
+	hz_sum=0
+	hz_max=0
+	hz_min=1000000
+	loop=300
+	count=$loop
+	itemdata=0
+	while [ $count -gt 0 ];
+	do
+		val=`read_hz`
+		if [ "$val" != "" ]; then
+			if [ $val -gt $hz_max ]; then
+				hz_max=$val
+			fi
+			if [ $val -lt $hz_min ]; then
+				hz_min=$val
+			fi
+			hz_sum=`expr $hz_sum + $val`
+			itemdata=`expr $itemdata + 1`
+		fi
+		count=`expr $count - 1`
+	done
+	ave=`expr $hz_sum / $itemdata`
+	echo `npulse2freq $ave`,`npulse2freq $hz_max`,`npulse2freq $hz_min`,at `date +%H:%M:%S`
+}
+
+result="`do_average`"
+echo "tp0="`echo $result | cut -d, -f2`
+echo "tp4="`echo $result | cut -d, -f3`
+echo "usb="`echo $result | cut -d, -f1`
+

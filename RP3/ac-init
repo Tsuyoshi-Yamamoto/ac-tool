@@ -1,0 +1,16 @@
+#!/bin/sh
+
+gpio -g mode 17 out
+gpio -g write 17 1
+gpio -g mode 18 in
+gpio -g mode 5 in
+gpio -g mode 6 in
+gpio -g mode 13 in
+gpio -g mode 19 in
+gpio -g mode 26 in
+gpio -g mode 12 in
+gpio -g mode 16 in
+gpio -g mode 20 in
+gpio -g mode 21 in
+gpio -g mode 27 in
+
